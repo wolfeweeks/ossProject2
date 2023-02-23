@@ -6,55 +6,58 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <getopt.h>
 #include <sys/wait.h>
 #include <string.h>
+#include <time.h>
 
 #include "shared_memory.h"
 
 #define BLOCK_SIZE 4096
 
 int main(int argc, char* argv[]) {
-  // // Initialize variables to hold command line options
-  // int proc = 1, simul = 1, iter = 1;
+  // Initialize variables to hold command line options
+  int proc = 1, simul = 1, limit = 5;
 
   // // iterStr used for execl command
   // char iterStr[2];
 
-  // // Use getopt() function to parse command line options
-  // int opt;
-  // while ((opt = getopt(argc, argv, "n:s:t:h")) != -1) {
-  //   switch (opt) {
-  //   case 'n':
-  //     proc = atoi(optarg);
-  //     break;
-  //   case 's':
-  //     simul = atoi(optarg);
-  //     break;
-  //   case 't':
-  //     iter = atoi(optarg);
-  //     break;
-  //   case 'h':
-  //     printf("Usage: oss [-h] [-n proc] [-s simul] [-t iter]\n");
-  //     printf("\t-h (optional) shows a help message\n");
-  //     printf("\t-n (optional) is the total number of child processes to create\n");
-  //     printf("\t-s (optional) is the maximum number of concurrent child processes\n");
-  //     printf("\t-t (optional) is the number of iterations each child process should do\n");
-  //     return 0;
-  //   default:
-  //     printf("Invalid option\n");
-  //     return 1;
-  //   }
-  // }
+  // Use getopt() function to parse command line options
+  int opt;
+  while ((opt = getopt(argc, argv, "n:s:t:h")) != -1) {
+    switch (opt) {
+    case 'n':
+      proc = atoi(optarg);
+      break;
+    case 's':
+      simul = atoi(optarg);
+      break;
+    case 't':
+      limit = atoi(optarg);
+      break;
+    case 'h':
+      printf("Usage: oss [-h] [-n proc] [-s simul] [-t iter]\n");
+      printf("\t-h (optional) shows a help message\n");
+      printf("\t-n (optional) is the total number of child processes to create\n");
+      printf("\t-s (optional) is the maximum number of concurrent child processes\n");
+      printf("\t-t (optional) is the number of iterations each child process should do\n");
+      return 0;
+    default:
+      printf("Invalid option\n");
+      return 1;
+    }
+  }
 
+  printf("%d %d %d\n", proc, simul, limit);
   // // convert iteration number to a string for execl command
-  // snprintf(iterStr, sizeof(iterStr), "%d", iter);
+  // snprintf(iterStr, sizeof(iterStr), "%d", limit);
 
   // initialize the clock that will be put in shared memory
-  int clock[] = { 10, 20 };
+  int clock[] = { 0, 0 };
 
   // get shared memory block for clock
-  char* block = attach_memory_block("README.txt", sizeof(int) * 2);
+  int* block = attach_memory_block("README.txt", sizeof(int) * 2);
   if (block == NULL) {
     printf("ERROR: couldn't get shared memory block\n");
     exit(1);
@@ -72,7 +75,23 @@ int main(int argc, char* argv[]) {
     printf("Fork failed!\n");
     exit(1);
   } else if (pid == 0) {
-    execl("./worker", "./worker", NULL);
+    srand(time(0) + pid);
+
+    int randSeconds = (rand() % (limit + 1));
+    int randNano;
+    if (randSeconds < limit) {
+      randNano = (rand() % 1000000001);
+    } else {
+      randNano = 0;
+    }
+
+    char secStr[2];
+    char nanoStr[10];
+
+    sprintf(secStr, "%d", randSeconds);
+    sprintf(nanoStr, "%d", randNano);
+
+    execl("./worker", "./worker", secStr, nanoStr, NULL);
   } else {
     wait(0);
     if (destroy_memory_block("README.txt")) {

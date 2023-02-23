@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include "shared_memory.h"
 
@@ -13,11 +14,15 @@
 
 int main(int argc, char* argv[]) {
 
-  // // check if command line argument is passed
-  // if (argc != 2) {
-  //   printf("Error: missing command line argument for number of iterations\n");
-  //   return 1;
-  // }
+  // check if command line argument is passed
+  if (argc != 3) {
+    printf("Error: missing command line argument for time limit\n");
+    return 1;
+  }
+
+  // convert command line arguments to integers
+  int limit[] = { atoi(argv[1]) , atoi(argv[2]) };
+  printf("%d %d\n", limit[0], limit[1]);
 
   // // convert command line argument to integer
   // int iterations = atoi(argv[1]);
