@@ -11,6 +11,7 @@
 #include <sys/wait.h>
 #include <string.h>
 #include <time.h>
+#include <sys/time.h>
 
 #include "shared_memory.h"
 
@@ -49,7 +50,6 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  printf("%d %d %d\n", proc, simul, limit);
   // // convert iteration number to a string for execl command
   // snprintf(iterStr, sizeof(iterStr), "%d", limit);
 
@@ -63,11 +63,8 @@ int main(int argc, char* argv[]) {
     exit(1);
   }
 
-  printf("Initializing clock in shared memory\n");
   // put clock into shared memory
   memcpy(block, clock, sizeof(int) * 2);
-
-  detach_memory_block(block);
 
   // fork a child process
   pid_t pid = fork();
@@ -93,11 +90,18 @@ int main(int argc, char* argv[]) {
 
     execl("./worker", "./worker", secStr, nanoStr, NULL);
   } else {
-    wait(0);
-    if (destroy_memory_block("README.txt")) {
-      printf("Destroyed block\n");
-    } else {
-      printf("Couldn't destroy block\n");
+    while (true) {
+      clock[1] += 300;
+      if (clock[1] >= 1000000000) {
+        clock[0] += 1;
+        clock[1] -= 1000000000;
+      }
+      memcpy(block, clock, sizeof(int) * 2);
+
+      pid = waitpid(-1, NULL, WNOHANG);
+      if (pid > 0) {
+        break;
+      }
     }
   }
 
@@ -131,6 +135,13 @@ int main(int argc, char* argv[]) {
   // // wait for all remaining child processes to finish
   // // idea found from here: https://stackoverflow.com/questions/19461744/how-to-make-parent-wait-for-all-child-processes-to-finish
   // while (wait(0) > 0);
+
+
+  if (!destroy_memory_block("README.txt")) {
+    printf("ERROR: Couldn't destroy shared memory block\n");
+  }
+
+  detach_memory_block(block);
 
   return 0;
 }
