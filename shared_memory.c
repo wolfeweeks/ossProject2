@@ -1,3 +1,5 @@
+// The code for these helper functions came from: https://www.youtube.com/watch?v=WgVSq-sgHOc&t=612s
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
